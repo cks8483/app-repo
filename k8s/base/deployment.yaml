@@ -1,20 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-app
+  name: web-notepad
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: my-app
+      app: notepad
   template:
     metadata:
       labels:
-        app: my-app
+        app: notepad
     spec:
       containers:
-      - name: my-app-container
-        # 여기에 이미지 이름만 명시 (태그는 kustomization.yaml에서 관리)
-        image: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
+      - name: web
+        image: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app # 태그는 Kustomize가 관리
         ports:
-        - containerPort: 8080
+        - containerPort: 5000

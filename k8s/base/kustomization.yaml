@@ -4,5 +4,5 @@ resources:
   - deployment.yaml
   - service.yaml
 images:
-  - name: asia-northeast3-docker.pkg.dev/[YOUR_GCP_PROJECT_ID]/my-docker-repo/my-app
-    newTag: v1.0.0 # 초기 태그
+  - name: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
+    newTag: initial
