@@ -8,7 +8,7 @@ on:
       - 'Dockerfile'  # Dockerfile이 변경될 때만 실행
 
 env:
-  GCP_PROJECT_ID: [YOUR_GCP_PROJECT_ID]
+  GCP_PROJECT_ID: chchoi-project
   GAR_LOCATION: asia-northeast3
   IMAGE_NAME: my-app
 
