@@ -7,7 +7,7 @@ on:
       - 'src/**'      # src 디렉터리 하위 파일이 변경될 때만 실행
       - 'Dockerfile'  # Dockerfile이 변경될 때만 실행
       - 'requirements.txt' # 추가
-
+    workflow_dispatch: # 수동 실행 옵션 추가
 env:
   GCP_PROJECT_ID: chchoi-project
   GAR_LOCATION: asia-northeast3
@@ -19,7 +19,7 @@ jobs:
 
     permissions:
       contents: write
-      
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
