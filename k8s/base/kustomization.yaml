@@ -1,8 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - deployment.yaml
-  - service.yaml
+- deployment.yaml
+- service.yaml
 images:
-  - name: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
-    newTag: initial
+- name: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
+  newName: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
+  newTag: e5f9253e6fec75a0d95af95c7e85dd5b7a9bc967
