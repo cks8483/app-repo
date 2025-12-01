@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/**'      # src 디렉터리 하위 파일이 변경될 때만 실행
       - 'Dockerfile'  # Dockerfile이 변경될 때만 실행
+      - 'requirements.txt' # 추가
 
 env:
   GCP_PROJECT_ID: chchoi-project
@@ -15,6 +16,10 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
