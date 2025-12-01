@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 
 app = Flask(__name__)
 
+
 # 지금은 메모 데이터를 코드 안에 하드코딩합니다.
 NOTES = [
     {"id": 1, "content": "첫 번째 메모: Dockerfile 만들기"},
