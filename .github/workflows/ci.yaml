@@ -1,4 +1,4 @@
-name: CI/CD for Mono Repo
+name: CI/CD for Image Service
 
 permissions:
   contents: write
@@ -14,7 +14,8 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: chan8483/myapp
+  # [수정] 프로젝트에 맞는 이미지 이름으로 변경
+  IMAGE_NAME: chan8483/image-service
 
 jobs:
   build-and-deploy:
@@ -23,8 +24,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       # Docker Hub 로그인
       - name: Log in to Docker Hub
@@ -33,26 +32,39 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build & Push Docker Hub
+      # Build & Push
       - name: Build and Push Docker Image
         id: build-image
         run: |
-          IMAGE_TAG=${{ github.sha }}
+          # Git Commit Hash (Short)를 태그로 사용
+          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          
           docker build -t ${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
           docker push ${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+          
+          # 다음 스텝에서 쓰기 위해 변수 저장
           echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
-      # Update Kustomize Image
+      # Kustomize 설치 (Ubuntu 환경에 없을 수도 있으므로 안전하게 설치)
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      # 이미지 태그 업데이트 (가장 중요한 단계)
       - name: Update Image Tag in Kustomization
         run: |
           cd k8s/base
+          # kustomization.yaml 안의 이미지 태그를 새로 빌드된 태그로 변경
           kustomize edit set image ${{ env.IMAGE_NAME }}=${{ env.IMAGE_NAME }}:${{ steps.build-image.outputs.IMAGE_TAG }}
 
-      # Commit & Push
+      # 변경 사항 Git에 커밋 & 푸시
       - name: Commit and Push Manifest Changes
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "github-actions-bot@github.com"
+          
+          # kustomization.yaml 변경사항만 add
           git add k8s/base/kustomization.yaml
+          
+          # 변경 내용이 있을 때만 커밋 (오류 방지)
           git diff --quiet && git diff --staged --quiet || git commit -m "CI: Update image tag to ${{ steps.build-image.outputs.IMAGE_TAG }}"
           git push

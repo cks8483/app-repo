@@ -1,12 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: notepad-service
+  name: image-web-svc
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
-    app: notepad
+    app: image-web  # image-web Deployment만 바라봄 (워커는 포트 노출 필요 없음)
   ports:
-  - protocol: TCP
-    port: 80
+  - port: 80
     targetPort: 5000

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-worker
+  template:
+    metadata:
+      labels:
+        app: image-worker
+    spec:
+      containers:
+      - name: worker
+        image: chan8483/image-service:v1  # [변경] ID 적용
+        command: ["python", "src/worker.py"] # [변경] 경로가 src/worker.py로 바뀜
+        env:
+        - name: RABBITMQ_HOST
+          value: "rabbitmq"
+        - name: MINIO_ENDPOINT
+          value: "http://minio:9000"
