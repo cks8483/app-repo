@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: image-web-svc
 spec:
-  type: LoadBalancer
+  type: NodePort  # [변경] LoadBalancer -> NodePort
   selector:
-    app: image-web  # image-web Deployment만 바라봄 (워커는 포트 노출 필요 없음)
+    app: image-web
   ports:
-  - port: 80
-    targetPort: 5000
+  - port: 80         # 서비스 내부 포트
+    targetPort: 5000 # 컨테이너(Gunicorn) 포트
+    nodePort: 30080  # [추가] 외부에서 접속할 고정 포트 (30000-32767 사이)
