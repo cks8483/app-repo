@@ -7,4 +7,4 @@ resources:
 images:
 - name: chan8483/image-service
   newName: chan8483/image-service
-  newTag: v1
+  newTag: 05cd744
