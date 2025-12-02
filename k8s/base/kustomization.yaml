@@ -6,4 +6,4 @@ resources:
 images:
 - name: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
   newName: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
-  newTag: 82e24e9ba0c06b3eb136afe085dc5d63bc61273d
+  newTag: 39e2118229ccb89132d2bebf267b1f8751296511
