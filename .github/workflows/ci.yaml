@@ -4,59 +4,52 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'src/**'      # src 디렉터리 하위 파일이 변경될 때만 실행
-      - 'Dockerfile'  # Dockerfile이 변경될 때만 실행
-      - 'requirements.txt' # 추가
-      - 'k8s/**' # k8s 디렉터리 하위 파일이 변경될 때만 실행
-  workflow_dispatch: # 수동 실행 옵션 추가
+      - 'src/**'
+      - 'Dockerfile'
+      - 'requirements.txt'
+      - 'k8s/**'
+  workflow_dispatch:
+
 env:
-  GCP_PROJECT_ID: chchoi-project
-  GAR_LOCATION: asia-northeast3
-  IMAGE_NAME: my-app
+  IMAGE_NAME: chan8483/myapp
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-        # checkout 시점에 git history를 가져와야 commit/push가 가능
         with:
           fetch-depth: 0
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
+      # Docker Hub 로그인
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set up Cloud SDK and Docker Auth
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-      - run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
-
+      # Build & Push Docker Hub
       - name: Build and Push Docker Image
         id: build-image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker build -t ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/my-docker-repo/${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
-          docker push ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/my-docker-repo/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+          docker build -t ${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
+          docker push ${{ env.IMAGE_NAME }}:${IMAGE_TAG}
           echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
 
+      # Update Kustomize Image
       - name: Update Image Tag in Kustomization
         run: |
           cd k8s/base
-          kustomize edit set image ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/my-docker-repo/${{ env.IMAGE_NAME }}=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/my-docker-repo/${{ env.IMAGE_NAME }}:${{ steps.build-image.outputs.IMAGE_TAG }}
-          
+          kustomize edit set image ${{ env.IMAGE_NAME }}=${{ env.IMAGE_NAME }}:${{ steps.build-image.outputs.IMAGE_TAG }}
+
+      # Commit & Push
       - name: Commit and Push Manifest Changes
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "github-actions-bot@github.com"
           git add k8s/base/kustomization.yaml
-          # 변경 사항이 있을 때만 커밋
           git diff --quiet && git diff --staged --quiet || git commit -m "CI: Update image tag to ${{ steps.build-image.outputs.IMAGE_TAG }}"
           git push

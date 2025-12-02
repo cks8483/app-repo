@@ -14,23 +14,6 @@ spec:
     spec:
       containers:
       - name: web
-        image: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
+        image: chan8483/myapp # 태그는 kustomize edit set image 로 자동 관리됨
         ports:
         - containerPort: 5000
-
-        # 1) GOOGLE_APPLICATION_CREDENTIALS 환경 변수 추가
-        env:
-        - name: GOOGLE_APPLICATION_CREDENTIALS
-          value: /var/secrets/google/key.json
-
-        # 2) 키 파일을 컨테이너 내부로 마운트
-        volumeMounts:
-        - name: gcp-sa-creds
-          mountPath: /var/secrets/google
-          readOnly: true
-
-      # Pod spec에 volume 선언
-      volumes:
-      - name: gcp-sa-creds
-        secret:
-          secretName: gcp-sa-key  # kubectl create secret generic gcp-sa-key 로 만든 이름

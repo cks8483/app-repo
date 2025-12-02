@@ -4,6 +4,6 @@ resources:
 - deployment.yaml
 - service.yaml
 images:
-- name: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
-  newName: asia-northeast3-docker.pkg.dev/chchoi-project/my-docker-repo/my-app
-  newTag: 8b405326c307ad0f9038ad38a8bf1ad7db78a7a0
+- name: chan8483/myapp
+  newName: chan8483/myapp
+  newTag: ${{ github.sha }}
