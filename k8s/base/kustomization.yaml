@@ -6,4 +6,4 @@ resources:
 images:
 - name: chan8483/myapp
   newName: chan8483/myapp
-  newTag: 18b8d0acee627e806386bfdb5dc29d5df79fd5bc
+  newTag: e75591efd88f4e541988f5784d0a43bdae2270fa
