@@ -4,6 +4,9 @@ resources:
 - deployment.yaml
 - service.yaml
 images:
+- name: chan8483/image-service
+  newName: chan8483/image-service
+  newTag: 527817f
 - name: chan8483/myapp
   newName: chan8483/myapp
   newTag: e75591efd88f4e541988f5784d0a43bdae2270fa
