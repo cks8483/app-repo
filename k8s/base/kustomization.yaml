@@ -6,4 +6,4 @@ resources:
 images:
 - name: chan8483/myapp
   newName: chan8483/myapp
-  newTag: ${{ github.sha }}
+  newTag: adf62b3f5680f495fec814968f1b04545496b062
