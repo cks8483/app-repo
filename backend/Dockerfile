@@ -21,4 +21,4 @@ EXPOSE 8000
 
 # Run the application
 # main.py가 있는 위치에서 실행
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
