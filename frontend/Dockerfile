@@ -4,7 +4,7 @@ FROM node:18 AS build-stage
 WORKDIR /app
 
 # Install dependencies
-COPY ../package*.json ./
+COPY package*.json ./
 RUN npm install
 
 # Copy source and build
