@@ -110,14 +110,10 @@ metadata:
   namespace: dev-portfolio
   annotations:
     kubernetes.io/ingress.class: "nginx"
-    # Nginx Ingress Controller가 필요합니다.
-    # Backend API가 '/api' prefix를 포함하고 있으므로 rewrite-target은 필요 없습니다.
 spec:
   rules:
-    - host: portfolio.local
-      http:
+    - http: 
         paths:
-          # Specific path for Backend API
           - path: /api
             pathType: Prefix
             backend:
@@ -125,7 +121,6 @@ spec:
                 name: portfolio-backend-svc
                 port:
                   number: 8000
-          # Default path for Frontend SPA
           - path: /
             pathType: Prefix
             backend:
