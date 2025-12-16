@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev-portfolio
+
+---
+# -------------------
+# Backend Services
+# -------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-backend
+  namespace: dev-portfolio
+  labels:
+    app: portfolio-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: portfolio-backend
+  template:
+    metadata:
+      labels:
+        app: portfolio-backend
+    spec:
+      containers:
+        - name: backend
+          image: chan8483/portfolio-backend:latest
+          ports:
+            - containerPort: 8000
+          # Health check probes (Recommended best practice)
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio-backend-svc
+  namespace: dev-portfolio
+spec:
+  selector:
+    app: portfolio-backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
+# -------------------
+# Frontend Services
+# -------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-frontend
+  namespace: dev-portfolio
+  labels:
+    app: portfolio-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: portfolio-frontend
+  template:
+    metadata:
+      labels:
+        app: portfolio-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: chan8483/portfolio-frontend:latest
+          ports:
+            - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio-frontend-svc
+  namespace: dev-portfolio
+spec:
+  selector:
+    app: portfolio-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+
+---
+# -------------------
+# Ingress Configuration
+# -------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portfolio-ingress
+  namespace: dev-portfolio
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    # Nginx Ingress Controller가 필요합니다.
+    # Backend API가 '/api' prefix를 포함하고 있으므로 rewrite-target은 필요 없습니다.
+spec:
+  rules:
+    - host: portfolio.local
+      http:
+        paths:
+          # Specific path for Backend API
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: portfolio-backend-svc
+                port:
+                  number: 8000
+          # Default path for Frontend SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: portfolio-frontend-svc
+                port:
+                  number: 80

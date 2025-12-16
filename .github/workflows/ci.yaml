@@ -1,70 +1,103 @@
-name: CI/CD for Image Service
+name: CI/CD Pipeline
 
-permissions:
-  contents: write
-
+# Trigger the workflow on push to the main branch
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - 'src/**'
-      - 'Dockerfile'
-      - 'requirements.txt'
+    # Prevent infinite loops when the workflow pushes changes back to the repo
+    paths-ignore:
       - 'k8s/**'
+      - 'README.md'
   workflow_dispatch:
 
-env:
-  # [수정] 프로젝트에 맞는 이미지 이름으로 변경
-  IMAGE_NAME: chan8483/image-service
-
 jobs:
-  build-and-deploy:
+  # Job 1: Build and Push Docker Images
+  build-and-push:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+    outputs:
+      # Export the generated tag to be used in the next job
+      image_tag: ${{ steps.vars.outputs.sha_short }}
+    
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      # Docker Hub 로그인
+      - name: Generate Image Tag (Short SHA)
+        id: vars
+        run: echo "sha_short=sha-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build & Push
-      - name: Build and Push Docker Image
-        id: build-image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # --- Backend Build & Push ---
+      - name: Build and Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: chan8483/portfolio-backend:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Frontend Build & Push ---
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: chan8483/portfolio-frontend:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 2: Update Kubernetes Manifests (GitOps)
+  update-manifest:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to push changes back to the repo
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Update Image Tags in K8s Manifest
+        env:
+          NEW_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+          FILE_PATH: k8s/k8s-deployment.yaml
         run: |
-          # Git Commit Hash (Short)를 태그로 사용
-          IMAGE_TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "Updating images to tag: $NEW_TAG"
           
-          docker build -t ${{ env.IMAGE_NAME }}:${IMAGE_TAG} .
-          docker push ${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+          # Use sed to replace the image tags specifically
+          # This regex looks for 'image: chan8483/portfolio-backend:...' and replaces the part after the colon
+          sed -i "s|image: chan8483/portfolio-backend:.*|image: chan8483/portfolio-backend:$NEW_TAG|g" $FILE_PATH
+          sed -i "s|image: chan8483/portfolio-frontend:.*|image: chan8483/portfolio-frontend:$NEW_TAG|g" $FILE_PATH
           
-          # 다음 스텝에서 쓰기 위해 변수 저장
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          # Verify the change
+          cat $FILE_PATH | grep "image: chan8483"
 
-      # Kustomize 설치 (Ubuntu 환경에 없을 수도 있으므로 안전하게 설치)
-      - name: Setup Kustomize
-        uses: imranismail/setup-kustomize@v2
-
-      # 이미지 태그 업데이트 (가장 중요한 단계)
-      - name: Update Image Tag in Kustomization
+      - name: Commit and Push Changes
+        env:
+          NEW_TAG: ${{ needs.build-and-push.outputs.image_tag }}
         run: |
-          cd k8s/base
-          # kustomization.yaml 안의 이미지 태그를 새로 빌드된 태그로 변경
-          kustomize edit set image ${{ env.IMAGE_NAME }}=${{ env.IMAGE_NAME }}:${{ steps.build-image.outputs.IMAGE_TAG }}
-
-      # 변경 사항 Git에 커밋 & 푸시
-      - name: Commit and Push Manifest Changes
-        run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "github-actions-bot@github.com"
+          git config --global user.name "GitHub Actions CI"
+          git config --global user.email "actions@github.com"
           
-          # kustomization.yaml 변경사항만 add
-          git add k8s/base/kustomization.yaml
-          
-          # 변경 내용이 있을 때만 커밋 (오류 방지)
-          git diff --quiet && git diff --staged --quiet || git commit -m "CI: Update image tag to ${{ steps.build-image.outputs.IMAGE_TAG }}"
-          git push
+          # Check if there are changes before committing
+          if [[ -n $(git status -s) ]]; then
+            git add k8s/k8s-deployment.yaml
+            # [skip ci] is important to prevent infinite loop, though paths-ignore handles it too.
+            git commit -m "Update k8s image tags to $NEW_TAG [skip ci]"
+            git push origin main
+          else
+            echo "No changes to commit."
+          fi
