@@ -1,0 +1,19 @@
+# Python Virtual Environment
+.venv/
+
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyd
+*.so
+
+# IDEs (Pycharm, VS Code 등)
+.idea/
+.vscode/
+
+# Build artifacts
+dist/
+build/
+
+# npm dependencies
+node_modules/
